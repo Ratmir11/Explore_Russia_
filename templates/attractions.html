@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Достопримечательности</title>
+    <style>
+        /* Основные стили для страницы */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2em;
+            margin-top: 20px;
+        }
+
+        p {
+            text-align: center;
+            font-size: 1.2em;
+            margin: 20px;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        /* Адаптивные стили для мобильных устройств */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5em;
+            }
+
+            p {
+                font-size: 1em;
+            }
+
+            .container {
+                padding: 10px;
+            }
+        }
+
+        /* Стили для ссылок */
+        a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Стили для карточек достопримечательностей */
+        .attraction-card {
+            border: 1px solid #ccc;
+            padding: 16px;
+            margin: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .attraction-card img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .attraction-card button {
+            background-color: green;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .attraction-card button:disabled {
+            background-color: grey;
+            cursor: not-allowed;
+        }
+
+        /* Стили для анимации загрузки */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #000;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Стили для фильтров */
+        .filters {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .filters input {
+            margin: 10px 0;
+            padding: 5px;
+            width: 100%;
+        }
+
+        .filters button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Стили для модального окна */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Стили для сообщения об отсутствии достопримечательностей */
+        .no-results {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    {% include 'header.html' %} <!-- Подключаем хедер на странице достопримечательностей -->
+
+    <div class="container">
+        <h1>Достопримечательности</h1>
+        <button id="openFiltersBtn">Фильтры</button>
+        <div id="attractions-container">
+            <!-- Карточки достопримечательностей будут динамически подгружаться сюда -->
+        </div>
+        <div id="no-results-message" class="no-results" style="display: none;">
+            По вашим параметрам не удалось найти достопримечательности.
+        </div>
+    </div>
+
+    <!-- Модальное окно для фильтров -->
+    <div id="filtersModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Дальность нахождения достопримечательности</h2>
+            <div class="filters">
+                <label for="min_distance">От (км):</label>
+                <input type="number" id="min_distance" value="0">
+                <label for="max_distance">До (км):</label>
+                <input type="number" id="max_distance" value="100">
+                <button onclick="applyFilters()">Применить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let isLoading = false;
+        let userLat = null;
+        let userLon = null;
+        let minDistance = 0;
+        let maxDistance = 100;
+
+        function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        position => {
+                            userLat = position.coords.latitude;
+                            userLon = position.coords.longitude;
+                            resolve();
+                        },
+                        error => {
+                            reject(error);
+                        }
+                    );
+                } else {
+                    reject(new Error("Geolocation is not supported by this browser."));
+                }
+            });
+        }
+
+        function loadAttractions(page) {
+            isLoading = true;
+            fetch(`/get_attractions?page=${page}&user_lat=${userLat}&user_lon=${userLon}&min_distance=${minDistance}&max_distance=${maxDistance}`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('attractions-container');
+                    const noResultsMessage = document.getElementById('no-results-message');
+                    if (data.attractions.length === 0) {
+                        noResultsMessage.style.display = 'block';
+                        container.innerHTML = '';
+                    } else {
+                        noResultsMessage.style.display = 'none';
+                        data.attractions.forEach(attraction => {
+                            const card = document.createElement('div');
+                            card.className = 'attraction-card';
+                            card.innerHTML = `
+                                <h2>${attraction.name}</h2>
+                                <img src="${attraction.image_url}" alt="${attraction.name}">
+                                <p>${attraction.description}</p>
+                                <p>Адрес: ${attraction.address}</p>
+                                <p>Координаты: ${attraction.latitude}, ${attraction.longitude}</p>
+                                <button ${attraction.can_take ? '' : 'disabled'}>Взять достопримечательность</button>
+                            `;
+                            card.querySelector('button').addEventListener('click', function() {
+                                fetch('/take_attraction', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ attraction_id: attraction.id })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        alert('Достопримечательность взята!');
+                                        this.disabled = true;
+                                    } else {
+                                        alert('Ошибка: ' + data.error);
+                                    }
+                                });
+                            });
+                            container.appendChild(card);
+                        });
+                    }
+                    isLoading = false;
+                });
+        }
+
+        function applyFilters() {
+            minDistance = parseFloat(document.getElementById('min_distance').value);
+            maxDistance = parseFloat(document.getElementById('max_distance').value);
+            currentPage = 1;
+            document.getElementById('attractions-container').innerHTML = '';
+            loadAttractions(currentPage);
+            closeModal();
+        }
+
+        function openModal() {
+            document.getElementById('filtersModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('filtersModal').style.display = 'none';
+        }
+
+        function init() {
+            getUserLocation().then(() => {
+                loadAttractions(currentPage);
+                document.getElementById('openFiltersBtn').addEventListener('click', openModal);
+                document.querySelector('.close').addEventListener('click', closeModal);
+            }).catch(error => {
+                alert("Не удалось получить ваше местоположение. Проверьте настройки своего браузера и включите геопозицию");
+            });
+        }
+
+        window.onscroll = function() {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight && !isLoading) {
+                currentPage++;
+                loadAttractions(currentPage);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
+

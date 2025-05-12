@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль</title>
+
+    <!-- Подключаем Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        /* Основные стили для страницы */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        header {
+            background-color: #0033a0; /* Синий цвет для хедера */
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2em;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        p {
+            font-size: 1.2em;
+            text-align: center;
+            margin: 20px;
+        }
+
+        .profile-info {
+            margin: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-info p {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .profile-img {
+            max-width: 150px;
+            margin: 20px auto;
+            display: block;
+            border-radius: 50%;
+        }
+
+        /* Адаптивные стили для мобильных устройств */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5em;
+            }
+
+            p {
+                font-size: 1em;
+            }
+
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    {% include 'header.html' %} <!-- Подключаем хедер на страницу профиля -->
+
+    <div class="container">
+        {% if session.get('user_id') %}
+            <h1>Ваш Профиль</h1>
+            <div class="profile-info">
+                <!-- Отображаем фото профиля -->
+                {% if user_rating < 90 %}
+                    <img src="{{ url_for('static', filename='img/beginner_explorer.png') }}" alt="Beginner Explorer" class="profile-img">
+                {% elif user_rating >= 90 and user_rating < 225 %}
+                    <img src="{{ url_for('static', filename='img/continuing_explorer.png') }}" alt="Continuing Explorer" class="profile-img">
+                {% else %}
+                    <img src="{{ url_for('static', filename='img/super_explorer.png') }}" alt="Super Explorer" class="profile-img">
+                {% endif %}
+                <p><strong>Имя:</strong> {{ session.get('username') }}</p>
+                <p><strong>Город:</strong> {{ user_city }}</p>
+                <p><strong>Рейтинг:</strong> {{ user_rating }}</p>
+            </div>
+        {% else %}
+            <h1>Пожалуйста, войдите для просмотра профиля</h1>
+            <p><a href="/register">Регистрация</a> | <a href="/login">Войти</a></p>
+        {% endif %}
+    </div>
+
+    <!-- Подключаем Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

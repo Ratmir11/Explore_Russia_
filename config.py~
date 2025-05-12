@@ -1,0 +1,6 @@
+DB_PASS = "123456789_Ratmir_20080904"
+DB_NAME = "test_db"
+DB_USER = "postgres"
+DB_HOST = "127.0.0.1"
+
+APP_SECRET_KEY = "your_secret_key"
